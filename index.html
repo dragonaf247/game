@@ -360,6 +360,22 @@
             touch-action: none;
         }
 
+        /* Vùng nhận chạm mở rộng bao quanh đế 120px để ngón cái không bị trượt khi né gấp */
+        .joystick-hit-zone {
+            position: relative;
+            width: 152px;
+            height: 136px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            touch-action: none;
+            cursor: grab;
+        }
+
+        .joystick-hit-zone.dragging {
+            cursor: grabbing;
+        }
+
         /* Đế tròn Cần gạt Analog 360 độ (120px) */
         .joystick-base {
             position: relative;
@@ -373,22 +389,42 @@
             align-items: center;
             justify-content: center;
             touch-action: none;
-            cursor: grab;
+            pointer-events: none;
         }
 
-        .joystick-base:active {
-            cursor: grabbing;
+        .joystick-hit-zone.dragging .joystick-base {
             border-color: #ffe600;
-            box-shadow: 0 0 22px rgba(255, 230, 0, 0.45), inset 0 0 20px rgba(0, 0, 0, 0.9);
+            box-shadow: 0 0 24px rgba(255, 230, 0, 0.5), inset 0 0 20px rgba(0, 0, 0, 0.9);
         }
 
-        /* Vòng chỉ báo vùng chết & mũi tên 4 chiều mờ bên trong đế */
+        /* Vệt sáng hướng đẩy phát sáng trên vòng đế khi gạt mạnh */
+        .joystick-glow-arc {
+            position: absolute;
+            inset: -5px;
+            border-radius: 9999px;
+            pointer-events: none;
+            opacity: 0;
+            background: conic-gradient(
+                from -42deg,
+                transparent 0deg,
+                rgba(255, 230, 0, 0.9) 28deg,
+                rgba(255, 68, 68, 1) 42deg,
+                rgba(255, 230, 0, 0.9) 56deg,
+                transparent 84deg
+            );
+            -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 8px), #000 calc(100% - 7px));
+            mask: radial-gradient(farthest-side, transparent calc(100% - 8px), #000 calc(100% - 7px));
+            filter: drop-shadow(0 0 8px rgba(255, 210, 0, 0.95));
+            will-change: transform, opacity;
+        }
+
+        /* Vòng chỉ báo ngưỡng tốc độ chuẩn (~42%) & mũi tên 4 chiều mờ bên trong đế */
         .joystick-ring {
             position: absolute;
-            width: 56px;
-            height: 56px;
+            width: 52px;
+            height: 52px;
             border-radius: 9999px;
-            border: 1.5px dashed rgba(255, 255, 255, 0.22);
+            border: 1.5px dashed rgba(255, 255, 255, 0.25);
             pointer-events: none;
         }
 
@@ -398,15 +434,14 @@
             font-size: 11px;
             font-weight: 800;
             pointer-events: none;
-            transition: color 0.1s;
         }
 
         .joy-arrow.lit {
-            color: rgba(255, 230, 0, 0.95);
-            text-shadow: 0 0 6px #ffe600;
+            color: rgba(255, 230, 0, 0.98);
+            text-shadow: 0 0 8px #ffe600;
         }
 
-        /* Núm gạt tròn màu đỏ có trái tim trắng ở giữa */
+        /* Núm gạt tròn màu đỏ có trái tim trắng — 0 độ trễ khi đang kéo */
         .joystick-knob {
             position: absolute;
             width: 48px;
@@ -419,11 +454,13 @@
             align-items: center;
             justify-content: center;
             pointer-events: none;
+            transition: none;
             will-change: transform;
         }
 
+        /* Chỉ bật transition siêu ngắn 70ms khi thả tay để bật mượt về tâm */
         .joystick-knob.spring-back {
-            transition: transform 0.18s cubic-bezier(0.22, 1.35, 0.36, 1);
+            transition: transform 0.07s cubic-bezier(0.22, 1.35, 0.36, 1);
         }
 
         /* Phím D-pad 4 hướng thay thế */
@@ -635,9 +672,9 @@
             <!-- Tóm tắt điều khiển tay cầm ảo + bàn phím -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-left bg-white/5 border border-white/20 rounded-lg p-3 mb-4 text-[11px] sm:text-xs">
                 <div class="space-y-1">
-                    <div class="text-cyan-300 font-bold">📱 Tay cầm Ảo Mobile</div>
-                    <div>• <strong>Cần gạt 360°:</strong> Lái trái tim mượt (đổi D-Pad bất cứ lúc nào)</div>
-                    <div>• <strong>NÉ CHẬM (HOLD):</strong> Giữ giảm 50% tốc độ luồn khe hẹp</div>
+                    <div class="text-cyan-300 font-bold">📱 Tay cầm Ảo Siêu Nhạy</div>
+                    <div>• <strong>Cần gạt 360°:</strong> Phản hồi tức thì (3 mức: Cao 1.7x / Siêu 2.2x / Vừa 1.2x) hoặc kéo thẳng trong khung đấu</div>
+                    <div>• <strong>NÉ CHẬM (HOLD):</strong> Giữ giảm còn ~42% tốc độ & hiện tâm hitbox</div>
                     <div>• <strong>CHỌN / ĐÁNH (Z):</strong> Xác nhận thoại & chém chí mạng</div>
                 </div>
                 <div class="space-y-1">
@@ -839,35 +876,35 @@
                     </div>
                 </div>
                 <div id="attackHintTag" class="hidden absolute bottom-1 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded bg-black/85 border border-cyan-400 text-cyan-300 text-[10px] font-bold whitespace-nowrap pointer-events-none z-10">
-                </div>
-            </div>
-        </section>
-
-        <!-- 3. THANH TRẠNG THÁI NGƯỜI CHƠI (SV 204 | LV 1 | HP 20/20 | ÂM THANH | ĐỔI TAY CẦM) -->
-        <section class="shrink-0 bg-black/90 border-2 border-white/35 rounded-lg px-2.5 py-1.5 flex items-center justify-between gap-1.5 text-[11px] sm:text-xs font-bold">
-            <div class="flex items-center gap-1.5 shrink-0">
+        <!-- 3. THANH TRẠNG THÁI NGƯỜI CHƠI (SV 204 | LV 1 | HP 20/20 | ÂM THANH | ĐỘ NHẠY | ĐỔI TAY CẦM) -->
+        <section class="shrink-0 bg-black/90 border-2 border-white/35 rounded-lg px-2 py-1.5 flex items-center justify-between gap-1 text-[11px] sm:text-xs font-bold">
+            <div class="flex items-center gap-1 shrink-0">
                 <span class="text-white font-extrabold">SV 204</span>
-                <span class="text-yellow-300 font-pixel-num text-base">LV 1</span>
+                <span class="text-yellow-300 font-pixel-num text-sm sm:text-base">LV 1</span>
             </div>
 
             <!-- Thanh máu HP vàng/đỏ 20 / 20 -->
-            <div class="flex items-center gap-1.5 flex-1 justify-center max-w-[180px]">
-                <span class="text-red-400 font-extrabold">HP</span>
-                <div class="flex-1 h-3.5 bg-red-600 border border-white/85 rounded-sm overflow-hidden">
+            <div class="flex items-center gap-1 flex-1 justify-center min-w-[78px] max-w-[144px]">
+                <span class="text-red-400 font-extrabold text-[10px] sm:text-xs">HP</span>
+                <div class="flex-1 h-3 bg-red-600 border border-white/85 rounded-sm overflow-hidden">
                     <div id="playerHpBar" class="h-full bg-yellow-400 transition-all duration-150" style="width: 100%;"></div>
                 </div>
-                <span id="playerHpText" class="font-pixel-num text-base text-white shrink-0">20/20</span>
+                <span id="playerHpText" class="font-pixel-num text-sm sm:text-base text-white shrink-0">20/20</span>
             </div>
 
-            <!-- Nút bật/tắt 8-bit & chuyển đổi Cần gạt / D-Pad -->
+            <!-- Nút bật/tắt 8-bit, đổi Độ nhạy (Cao 1.7x / Siêu 2.2x / Vừa 1.2x) & đổi Cần gạt / D-Pad -->
             <div class="flex items-center gap-1 shrink-0">
                 <button id="musicToggleBtn" onclick="toggleAudio()" title="Bật/Tắt nhạc 8-bit"
-                        class="px-2 py-1 rounded bg-white/10 hover:bg-white/20 border border-white/40 text-white text-[11px] font-bold cursor-pointer">
+                        class="px-1.5 py-1 rounded bg-white/10 hover:bg-white/20 border border-white/40 text-white text-[11px] font-bold cursor-pointer">
                     <span id="musicIcon">🔊</span>
                 </button>
-                <button id="ctrlSwitchBtn" onclick="toggleControlMode()" title="Đổi Cần gạt / D-Pad"
-                        class="px-2 py-1 rounded bg-indigo-950/90 hover:bg-indigo-800 border border-cyan-400/70 text-cyan-200 text-[10px] sm:text-[11px] font-extrabold cursor-pointer">
-                    <span id="ctrlSwitchLabel">🕹️ Cần gạt</span>
+                <button id="sensSwitchBtn" onclick="cycleSensitivity()" title="Đổi độ nhạy cần gạt (Cao 1.7x / Siêu 2.2x / Vừa 1.2x)"
+                        class="px-1.5 py-1 rounded bg-amber-950/90 hover:bg-amber-800 border border-yellow-400/80 text-yellow-300 text-[10px] sm:text-[11px] font-extrabold cursor-pointer whitespace-nowrap">
+                    <span id="sensSwitchLabel">⚡ <span class="hidden sm:inline">NHẠY: </span>CAO 1.7x</span>
+                </button>
+                <button id="ctrlSwitchBtn" onclick="toggleControlMode()" title="Đổi Cần gạt 360° / D-Pad"
+                        class="px-1.5 py-1 rounded bg-indigo-950/90 hover:bg-indigo-800 border border-cyan-400/70 text-cyan-200 text-[10px] sm:text-[11px] font-extrabold cursor-pointer whitespace-nowrap">
+                    <span id="ctrlSwitchLabel">🕹️ 360°</span>
                 </button>
             </div>
         </section>
@@ -889,22 +926,25 @@
         </nav>
 
         <!-- 5. CỤM TAY CẦM RETRO ARCADE CHO ĐIỆN THOẠI (CẦN GẠT 360° / D-PAD + NÉ CHẬM + CHỌN/ĐÁNH) -->
-        <section id="controllerDeck" class="arcade-deck shrink-0 w-full px-3 sm:px-5 py-2 flex items-center justify-between gap-2 h-[138px] sm:h-[144px]">
+        <section id="controllerDeck" class="arcade-deck shrink-0 w-full px-2 sm:px-5 py-1.5 flex items-center justify-between gap-1 h-[142px] sm:h-[148px]">
 
-            <!-- BÊN TRÁI: CẦN ĐIỀU KHIỂN ANALOG 360° HOẶC D-PAD 4 HƯỚNG -->
-            <div class="flex items-center justify-center w-[132px] h-[124px]">
-                <!-- Chế độ 1: Cần gạt 360 độ (Mặc định) -->
-                <div id="joystickBase" class="joystick-base" aria-label="Cần điều khiển 360 độ">
-                    <div class="joystick-ring"></div>
-                    <span id="joyArrUp" class="joy-arrow top-2 left-1/2 -translate-x-1/2">▲</span>
-                    <span id="joyArrDown" class="joy-arrow bottom-2 left-1/2 -translate-x-1/2">▼</span>
-                    <span id="joyArrLeft" class="joy-arrow left-2.5 top-1/2 -translate-y-1/2">◀</span>
-                    <span id="joyArrRight" class="joy-arrow right-2.5 top-1/2 -translate-y-1/2">▶</span>
-                    <!-- Núm gạt tròn màu đỏ có trái tim trắng ở giữa -->
-                    <div id="joystickKnob" class="joystick-knob spring-back">
-                        <svg viewBox="0 0 24 24" class="w-6 h-6 fill-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.65)]">
-                            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-                        </svg>
+            <!-- BÊN TRÁI: VÙNG NHẬN CHẠM MỞ RỘNG CHO CẦN GẠT ANALOG 360° HOẶC D-PAD 4 HƯỚNG -->
+            <div class="flex items-center justify-center w-[152px] h-[136px] -ml-1 sm:ml-0">
+                <!-- Chế độ 1: Cần gạt 360 độ siêu nhạy với vùng nhận chạm rộng hơn đế 120px -->
+                <div id="joystickHitZone" class="joystick-hit-zone" aria-label="Vùng điều khiển cần gạt 360 độ">
+                    <div id="joystickBase" class="joystick-base">
+                        <div id="joystickGlowArc" class="joystick-glow-arc"></div>
+                        <div class="joystick-ring"></div>
+                        <span id="joyArrUp" class="joy-arrow top-2 left-1/2 -translate-x-1/2">▲</span>
+                        <span id="joyArrDown" class="joy-arrow bottom-2 left-1/2 -translate-x-1/2">▼</span>
+                        <span id="joyArrLeft" class="joy-arrow left-2.5 top-1/2 -translate-y-1/2">◀</span>
+                        <span id="joyArrRight" class="joy-arrow right-2.5 top-1/2 -translate-y-1/2">▶</span>
+                        <!-- Núm gạt tròn màu đỏ có trái tim trắng ở giữa -->
+                        <div id="joystickKnob" class="joystick-knob spring-back">
+                            <svg viewBox="0 0 24 24" class="w-6 h-6 fill-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.65)]">
+                                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                            </svg>
+                        </div>
                     </div>
                 </div>
 
@@ -927,7 +967,7 @@
             <!-- NHÃN GIỮA TRANG TRÍ ARCADE -->
             <div class="hidden sm:flex flex-col items-center justify-center text-center text-[10px] text-gray-400 px-1">
                 <span class="font-extrabold text-white/75 tracking-widest uppercase">204 PAD</span>
-                <span id="padStatusHint" class="text-cyan-300/80 mt-0.5">Analog 360°</span>
+                <span id="padStatusHint" class="text-yellow-300 font-bold mt-0.5">CAO 1.7x</span>
             </div>
 
             <!-- BÊN PHẢI: 2 NÚT PHỤ TRỢ CHO NGÓN CÁI PHẢI -->
@@ -1166,29 +1206,28 @@
             }
         }
 
-        function showToast(msg) {
-            const box = document.getElementById('toastBox');
-            box.textContent = msg;
-            box.classList.remove('hidden');
-            clearTimeout(box._t);
-            box._t = setTimeout(() => box.classList.add('hidden'), 2200);
-        }
-
-        /* =====================================================================
-         * 2. TRẠNG THÁI GAME (HP 20/20, ACT +25/+35/+30%, ITEM +10/+8/+6/+5)
-         * ===================================================================== */
-        const INITIAL_ITEMS = [
-            { id: 'trasua', name: 'Trà sữa 204', heal: 10, desc: 'Full trân châu đường đen (+10 HP)' },
-            { id: 'banhquy', name: 'Bánh quy Noel', heal: 8, desc: 'Bánh bơ gừng Giáng sinh (+8 HP)' },
-            { id: 'keogay', name: 'Kẹo gậy bạc hà', heal: 6, desc: 'Ngọt mát tỉnh táo tinh thần (+6 HP)' },
-            { id: 'nuocsuoi', name: 'Nước suối', heal: 5, desc: 'Chai nước mát trên bàn họp 204 (+5 HP)' }
-        ];
-
-        const ACT_OPTIONS = [
-            { id: 'check', name: 'Kiểm tra', tag: 'Thông tin', desc: 'Xem chỉ số & điểm yếu của Boss Cún Bông.' },
-            { id: 'pet', name: 'Xoa đầu', tag: '+25% Thiện cảm', desc: 'Xoa đầu làm dịu chú cún & giảm nhẹ đòn kế tiếp.' },
-            { id: 'treat', name: 'Cho bánh thưởng', tag: '+35% Thiện cảm', desc: 'Tung bánh xương khiến Cún Bông cười tít mắt.' },
-            { id: 'guitar', name: 'Gảy đàn Yamaha', tag: '+30% Thiện cảm', desc: 'Đệm khúc Noel bằng cây đàn góc Phòng 204.' }
+        const SENSITIVITY_LEVELS = [
+            {
+                id: 'high',
+                shortLabel: 'CAO 1.7x',
+                fullLabel: 'NHẠY: CAO (1.7x)',
+                mult: 1.7,
+                btnClass: 'px-1.5 py-1 rounded bg-amber-950/90 hover:bg-amber-800 border border-yellow-400/80 text-yellow-300 text-[10px] sm:text-[11px] font-extrabold cursor-pointer whitespace-nowrap'
+            },
+            {
+                id: 'ultra',
+                shortLabel: 'SIÊU 2.2x',
+                fullLabel: 'SIÊU NHẠY (2.2x)',
+                mult: 2.2,
+                btnClass: 'px-1.5 py-1 rounded bg-red-950/95 hover:bg-red-800 border border-red-400 text-red-200 text-[10px] sm:text-[11px] font-extrabold cursor-pointer whitespace-nowrap'
+            },
+            {
+                id: 'medium',
+                shortLabel: 'VỪA 1.2x',
+                fullLabel: 'NHẠY: VỪA (1.2x)',
+                mult: 1.2,
+                btnClass: 'px-1.5 py-1 rounded bg-emerald-950/90 hover:bg-emerald-800 border border-emerald-400/80 text-emerald-200 text-[10px] sm:text-[11px] font-extrabold cursor-pointer whitespace-nowrap'
+            }
         ];
 
         const GameState = {
@@ -1198,6 +1237,7 @@
             selectedMain: 0,
             selectedSub: 0,
             controlMode: 'joystick', // 'joystick' | 'dpad'
+            sensitivityIndex: 0,     // 0: CAO 1.7x (mặc định) | 1: SIÊU NHẠY 2.2x | 2: VỪA 1.2x
 
             playerHp: 20,
             playerMaxHp: 20,
@@ -1222,15 +1262,40 @@
         };
 
         /* =====================================================================
-         * 3. CHUYỂN ĐỔI CHẾ ĐỘ CẦN GẠT 360° / PHÍM D-PAD 4 HƯỚNG
+         * 3. CHUYỂN ĐỔI ĐỘ NHẠY & CHẾ ĐỘ CẦN GẠT 360° / PHÍM D-PAD 4 HƯỚNG
          * ===================================================================== */
+        function getCurrentSensitivity() {
+            return SENSITIVITY_LEVELS[GameState.sensitivityIndex] || SENSITIVITY_LEVELS[0];
+        }
+
+        function updateSensitivityUI() {
+            const cfg = getCurrentSensitivity();
+            const btn = document.getElementById('sensSwitchBtn');
+            const label = document.getElementById('sensSwitchLabel');
+            const statusHint = document.getElementById('padStatusHint');
+            if (btn) btn.className = cfg.btnClass;
+            if (label) label.innerHTML = `⚡ <span class="hidden sm:inline">NHẠY: </span>${cfg.shortLabel}`;
+            if (statusHint && GameState.controlMode === 'joystick') {
+                statusHint.textContent = cfg.shortLabel;
+            }
+        }
+
+        function cycleSensitivity() {
+            SoundEngine.init();
+            SoundEngine.playMenuSelect();
+            GameState.sensitivityIndex = (GameState.sensitivityIndex + 1) % SENSITIVITY_LEVELS.length;
+            const cfg = getCurrentSensitivity();
+            updateSensitivityUI();
+            showToast(`⚡ Độ nhạy cần gạt: ${cfg.fullLabel}`);
+        }
+
         function toggleControlMode() {
             SoundEngine.init();
             SoundEngine.playMenuSelect();
             const isJoy = GameState.controlMode === 'joystick';
             GameState.controlMode = isJoy ? 'dpad' : 'joystick';
 
-            const joyEl = document.getElementById('joystickBase');
+            const joyHitEl = document.getElementById('joystickHitZone');
             const dpadEl = document.getElementById('dpadContainer');
             const labelEl = document.getElementById('ctrlSwitchLabel');
             const statusHint = document.getElementById('padStatusHint');
@@ -1240,13 +1305,13 @@
             BulletEngine.dpadKeys = { up: false, down: false, left: false, right: false };
 
             if (GameState.controlMode === 'joystick') {
-                joyEl.classList.remove('hidden');
+                joyHitEl.classList.remove('hidden');
                 dpadEl.classList.add('hidden');
-                labelEl.textContent = '🕹️ Cần gạt';
-                if (statusHint) statusHint.textContent = 'Analog 360°';
-                showToast('🕹️ Chế độ: Cần gạt 360°');
+                labelEl.textContent = '🕹️ 360°';
+                if (statusHint) statusHint.textContent = getCurrentSensitivity().shortLabel;
+                showToast(`🕹️ Cần gạt 360° (${getCurrentSensitivity().fullLabel})`);
             } else {
-                joyEl.classList.add('hidden');
+                joyHitEl.classList.add('hidden');
                 dpadEl.classList.remove('hidden');
                 labelEl.textContent = '✚ D-Pad';
                 if (statusHint) statusHint.textContent = 'D-Pad 4 hướng';
@@ -1780,13 +1845,13 @@
                 baseSpeed: 215,
                 invuln: 0,
                 moved: false
-            },
-
-            // Tổng hợp đầu vào: Phím PC + D-Pad ảo + Cần gạt Analog 360° + Chế độ Né Chậm (HOLD/Shift)
+            // Tổng hợp đầu vào: Phím PC + D-Pad ảo + Cần gạt Analog 360° + Kéo trực tiếp + Chế độ Né Chậm (HOLD/Shift)
             kbKeys: { up: false, down: false, left: false, right: false },
             dpadKeys: { up: false, down: false, left: false, right: false },
             joyX: 0,
             joyY: 0,
+            dragDeltaX: 0,
+            dragDeltaY: 0,
             slowKey: false,
             slowBtn: false,
 
@@ -1874,6 +1939,8 @@
             BulletEngine.heart.y = BulletEngine.ch / 2 + 8;
             BulletEngine.heart.invuln = 0.45;
             BulletEngine.heart.moved = false;
+            BulletEngine.dragDeltaX = 0;
+            BulletEngine.dragDeltaY = 0;
 
             document.getElementById('attackNameTag').textContent = atk.name;
             const hintTag = document.getElementById('attackHintTag');
@@ -1977,7 +2044,7 @@
             const prevX = h.x;
             const prevY = h.y;
 
-            // 1. Lấy vector 360° tỷ lệ thuận từ Cần gạt Analog
+            // 1. Lấy vector 360° đã áp dụng đường cong độ nhạy cao từ Cần gạt Analog
             let vx = BulletEngine.joyX;
             let vy = BulletEngine.joyY;
 
@@ -1995,10 +2062,18 @@
                 vy = kdy / len;
             }
 
-            // Giảm 50% tốc độ khi giữ NÉ CHẬM (HOLD) hoặc phím Shift
-            const slowMult = isSlowFocusActive() ? 0.5 : 1.0;
+            // Giảm tốc xuống ~42% khi giữ nút NÉ CHẬM (HOLD) hoặc phím Shift
+            const slowMult = isSlowFocusActive() ? 0.42 : 1.0;
             h.x += vx * h.baseSpeed * slowMult * dt;
             h.y += vy * h.baseSpeed * slowMult * dt;
+
+            // 3. Áp dụng kéo trực tiếp trong khung đấu (nếu người chơi chạm kéo trên canvas)
+            if (BulletEngine.dragDeltaX !== 0 || BulletEngine.dragDeltaY !== 0) {
+                h.x += BulletEngine.dragDeltaX * slowMult;
+                h.y += BulletEngine.dragDeltaY * slowMult;
+                BulletEngine.dragDeltaX = 0;
+                BulletEngine.dragDeltaY = 0;
+            }
 
             // Giới hạn trong khung viền trắng
             const pad = h.size + 4;
@@ -2006,7 +2081,7 @@
             h.y = Math.min(Math.max(h.y, pad + 18), BulletEngine.ch - pad);
 
             // Kiểm tra đứng yên cho cơ chế Xương Xanh Dương
-            h.moved = Math.hypot(h.x - prevX, h.y - prevY) > 0.55;
+            h.moved = Math.hypot(h.x - prevX, h.y - prevY) > 0.5;
             if (h.invuln > 0) h.invuln = Math.max(0, h.invuln - dt);
         }
 
@@ -2469,135 +2544,40 @@
         }
 
         /* =====================================================================
-         * 8. MÀN HÌNH KẾT THÚC (3 ENDINGS) & THƯỞNG SECRET SANTA (50-100 ĐIỂM)
-         * ===================================================================== */
-        function finishGame(endingType) {
-            stopBulletHell();
-            cancelFightBar();
-            JoystickController.reset();
-            setSlowFocus(false);
-            document.body.classList.remove('phase2-active');
-            GameState.screen = 'end';
-
-            document.getElementById('battleScreen').classList.add('hidden');
-            document.getElementById('endScreen').classList.remove('hidden');
-
-            const visual = document.getElementById('endVisual');
-            const badge = document.getElementById('endBadge');
-            const title = document.getElementById('endTitle');
-            const story = document.getElementById('endStory');
-            const rewardCard = document.getElementById('rewardCard');
-            const restartBtn = document.getElementById('restartBtn');
-
-            if (endingType === 'pacifist') {
-                SoundEngine.playVictoryFanfare(true);
-                visual.innerHTML = `
-                    <img src="image_b40ceb.png" alt="Bạn Thân Cún Bông"
-                         class="w-full h-full object-contain boss-idle drop-shadow-[0_0_22px_rgba(255,230,0,0.85)]"
-                         onerror="this.style.display='none'; document.getElementById('endPacifistSvg').classList.remove('hidden');">
-                    <div id="endPacifistSvg" class="hidden text-6xl animate-bounce">🐶💛</div>
-                `;
-                badge.textContent = '🌟 KẾT THÚC HÒA BÌNH (PACIFIST)';
-                badge.className = 'inline-block px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider mb-1.5 bg-yellow-400 text-black';
-                title.textContent = 'BẠN THÂN CÚN BÔNG 204';
-                story.textContent = 'Bạn đã chinh phục trọn vẹn trái tim Boss Cún Bông bằng xoa đầu, bánh thưởng và tiếng đàn Yamaha! Cả Phòng 204 vỗ tay rần rần chúc mừng đôi bạn mới.';
-                restartBtn.textContent = '🔄 CHƠI LẠI';
-                showSecretSantaReward('Pacifist');
-            } else if (endingType === 'combat') {
-                SoundEngine.playVictoryFanfare(false);
-                visual.innerHTML = `
-                    <img src="image_b40c2b.png" alt="Cún Bông Dỗi"
-                         class="w-full h-full object-contain opacity-90 drop-shadow-[0_0_16px_rgba(255,80,80,0.65)]"
-                         onerror="this.style.display='none'; document.getElementById('endCombatSvg').classList.remove('hidden');">
-                    <div id="endCombatSvg" class="hidden text-6xl">🐶💢💤</div>
-                `;
-                badge.textContent = '⚔️ CHIẾN THẮNG CHIẾN ĐẤU';
-                badge.className = 'inline-block px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider mb-1.5 bg-orange-500 text-white';
-                title.textContent = 'ĐÁNH BẠI BOSS CÚN BÔNG!';
-                story.textContent = 'Boss Cún Bông hừ một tiếng thật to, dỗi chui xuống gầm bàn họp Phòng 204 nằm cuộn tròn đi ngủ! Lần sau nhớ thử nhánh Hòa Bình nhé.';
-                restartBtn.textContent = '🔄 CHƠI LẠI';
-                showSecretSantaReward('Combat');
-            } else {
-                SoundEngine.stopBgm();
-                SoundEngine.playHeartBreak();
-                visual.innerHTML = `
-                    <svg viewBox="0 0 120 120" class="w-28 h-28">
-                        <path class="heart-half-left" d="M60 100 C25 74 12 48 25 28 C36 12 54 18 60 32 L54 55 L62 74 Z" fill="#ff2222" stroke="#ffffff" stroke-width="3"/>
-                        <path class="heart-half-right" d="M60 100 C95 74 108 48 95 28 C84 12 66 18 60 32 L66 55 L58 74 Z" fill="#ff2222" stroke="#ffffff" stroke-width="3"/>
-                    </svg>
-                `;
-                badge.textContent = '💔 GAME OVER';
-                badge.className = 'inline-block px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider mb-1.5 bg-red-700 text-white';
-                title.textContent = 'TRÁI TIM ĐÃ VỠ...';
-                story.textContent = 'Boss Cún Bông Phòng 204 quá gắt! Hãy giữ vững QUYẾT TÂM (DETERMINATION), tận dụng nút NÉ CHẬM và thử lại ngay nào!';
-                rewardCard.classList.add('hidden');
-                restartBtn.textContent = '🔥 CHƠI LẠI NGAY';
-            }
-        }
-
-        function showSecretSantaReward(winStyle) {
-            document.getElementById('rewardCard').classList.remove('hidden');
-
-            const basePoints = 50;
-            const hpRatio = GameState.playerHp / GameState.playerMaxHp;
-            const hpBonus = Math.round(hpRatio * 24); // 0 - 24 điểm theo HP còn lại
-            const styleBonus = winStyle === 'Pacifist' ? 16 : 8; // Thưởng cao hơn cho Hòa Bình
-            const luckyRoll = Math.floor(Math.random() * 11); // 0 - 10 điểm may mắn
-            const total = Math.min(100, Math.max(50, basePoints + hpBonus + styleBonus + luckyRoll));
-
-            document.getElementById('rewardTotalPoints').textContent = `+${total}`;
-            document.getElementById('rewardBreakdown').innerHTML = `
-                <div>• Hoàn thành trận đấu: <strong>+${basePoints}đ</strong></div>
-                <div>• Thưởng HP còn lại (${GameState.playerHp}/${GameState.playerMaxHp}): <strong>+${hpBonus}đ</strong></div>
-                <div>• Phong cách ${winStyle === 'Pacifist' ? 'Hòa Bình (Pacifist)' : 'Chiến Đấu'}: <strong>+${styleBonus}đ</strong></div>
-                <div>• Quà may mắn Noel 204: <strong>+${luckyRoll}đ</strong></div>
-            `;
-
-            const code = `SS204-${winStyle === 'Pacifist' ? 'PAC' : 'WIN'}-${total}PTS`;
-            GameState.lastRewardSummary = `[UNDERTALE 204: BOSS CÚN BÔNG] Thắng (${winStyle}) | HP: ${GameState.playerHp}/${GameState.playerMaxHp} | Điểm Secret Santa: +${total} điểm | Mã: ${code}`;
-        }
-
-        function copyRewardSummary() {
-            try {
-                const ta = document.createElement('textarea');
-                ta.value = GameState.lastRewardSummary;
-                ta.style.position = 'fixed';
-                ta.style.opacity = '0';
-                document.body.appendChild(ta);
-                ta.select();
-                document.execCommand('copy');
-                document.body.removeChild(ta);
-                showToast('✅ Đã sao chép kết quả gửi BTC!');
-            } catch (e) {
-                showToast('⚠️ Hãy chụp màn hình kết quả này gửi BTC nhé!');
-            }
-        }
-
-        /* =====================================================================
-         * 9. HỆ THỐNG CẦN ĐIỀU KHIỂN ẢO 360° ĐA CHẠM (VIRTUAL ANALOG JOYSTICK)
-         *    Hỗ trợ cảm ứng đa chạm (touch.identifier) + kéo chuột trên PC
+         * 9. HỆ THỐNG CẦN ĐIỀU KHIỂN ẢO 360° SIÊU NHẠY ĐA CHẠM (VIRTUAL ANALOG)
+         *    - Deadzone chỉ 3% (0.03), chạm bất cứ góc nào phản hồi ngay lập tức
+         *    - Đẩy ~42% bán kính đạt 100% tốc độ chuẩn, đẩy ra viền khuếch đại
+         *      theo mức độ nhạy (Cao 1.7x / Siêu 2.2x / Vừa 1.2x)
+         *    - Vùng nhận chạm mở rộng (#joystickHitZone), 0ms trễ khi đang kéo
          * ===================================================================== */
         const JoystickController = {
+            hitZone: null,
             base: null,
             knob: null,
+            glowArc: null,
             touchId: null,
             mouseDragging: false,
-            maxRadius: 38,    // Bán kính tối đa núm gạt di chuyển bên trong đế 120px
-            deadzone: 0.10,   // Vùng chết 10%
+            maxRadius: 38,    // Bán kính tối đa núm gạt trong đế hiển thị 120px
+            deadzone: 0.03,   // Vùng chết siêu nhỏ 3% để nhích nhẹ là phản hồi ngay
+            knee: 0.42,       // Đẩy 42% bán kính đã đạt tốc độ tối đa chuẩn (1.0x)
             lastMenuNavTs: 0,
 
             init() {
+                this.hitZone = document.getElementById('joystickHitZone');
                 this.base = document.getElementById('joystickBase');
                 this.knob = document.getElementById('joystickKnob');
+                this.glowArc = document.getElementById('joystickGlowArc');
 
-                // Cảm ứng đa chạm trên điện thoại (passive: false để khóa hoàn toàn cuộn trang)
-                this.base.addEventListener('touchstart', (e) => {
+                // Cảm ứng đa chạm trên vùng nhận chạm mở rộng (khóa hoàn toàn cuộn & zoom)
+                this.hitZone.addEventListener('touchstart', (e) => {
                     e.preventDefault();
                     SoundEngine.init();
                     if (this.touchId === null && e.changedTouches.length > 0) {
                         const t = e.changedTouches[0];
                         this.touchId = t.identifier;
+                        this.hitZone.classList.add('dragging');
                         this.knob.classList.remove('spring-back');
+                        // Phản hồi tức thì ngay khi chạm vào bất kỳ góc nào của đế
                         this.updateFromClientPos(t.clientX, t.clientY);
                     }
                 }, { passive: false });
@@ -2626,11 +2606,12 @@
                 window.addEventListener('touchend', onTouchRelease, { passive: false });
                 window.addEventListener('touchcancel', onTouchRelease, { passive: false });
 
-                // Kéo chuột trên máy tính để dễ test
-                this.base.addEventListener('mousedown', (e) => {
+                // Kéo chuột trên máy tính để test trực tiếp
+                this.hitZone.addEventListener('mousedown', (e) => {
                     e.preventDefault();
                     SoundEngine.init();
                     this.mouseDragging = true;
+                    this.hitZone.classList.add('dragging');
                     this.knob.classList.remove('spring-back');
                     this.updateFromClientPos(e.clientX, e.clientY);
                 });
@@ -2646,15 +2627,16 @@
             },
 
             updateFromClientPos(clientX, clientY) {
+                // Tính tâm dựa trên đế tròn hiển thị 120px
                 const rect = this.base.getBoundingClientRect();
                 const cx = rect.left + rect.width / 2;
                 const cy = rect.top + rect.height / 2;
 
-                let dx = clientX - cx;
-                let dy = clientY - cy;
+                const dx = clientX - cx;
+                const dy = clientY - cy;
                 const dist = Math.hypot(dx, dy);
 
-                // Kẹp vị trí núm gạt trong bán kính đế tròn
+                // Kẹp vị trí núm gạt bám tay 1:1 trong bán kính đế tròn
                 const clampedDist = Math.min(dist, this.maxRadius);
                 const angle = Math.atan2(dy, dx);
                 const knobX = Math.cos(angle) * clampedDist;
@@ -2662,18 +2644,30 @@
 
                 this.knob.style.transform = `translate3d(${knobX}px, ${knobY}px, 0)`;
 
-                // Tính vector chuẩn hóa [0..1] với deadzone 10%
+                // Đường cong phản hồi siêu nhạy (High-Sensitivity Curve)
                 const normMag = clampedDist / this.maxRadius;
                 if (normMag < this.deadzone) {
                     BulletEngine.joyX = 0;
                     BulletEngine.joyY = 0;
-                    this.updateArrows(0, 0);
+                    this.updateGlowAndArrows(0, 0, angle, 0);
                 } else {
-                    const scaledMag = (normMag - this.deadzone) / (1 - this.deadzone);
-                    BulletEngine.joyX = Math.cos(angle) * scaledMag;
-                    BulletEngine.joyY = Math.sin(angle) * scaledMag;
-                    this.updateArrows(BulletEngine.joyX, BulletEngine.joyY);
-                    this.tryNavigateMenuWithStick(BulletEngine.joyX, BulletEngine.joyY);
+                    const t = (normMag - this.deadzone) / (1 - this.deadzone);
+                    const sensMult = getCurrentSensitivity().mult;
+                    let effMag = 0;
+
+                    if (t <= this.knee) {
+                        // Đẩy 0% -> ~42%: vọt mượt và nhanh tới 1.0x tốc độ chuẩn
+                        effMag = Math.pow(t / this.knee, 0.72);
+                    } else {
+                        // Đẩy ~42% -> 100% viền: khuếch đại mượt từ 1.0x lên sensMult (1.7x / 2.2x / 1.2x)
+                        const extra = (t - this.knee) / (1 - this.knee);
+                        effMag = 1.0 + (sensMult - 1.0) * Math.pow(extra, 0.85);
+                    }
+
+                    BulletEngine.joyX = Math.cos(angle) * effMag;
+                    BulletEngine.joyY = Math.sin(angle) * effMag;
+                    this.updateGlowAndArrows(BulletEngine.joyX, BulletEngine.joyY, angle, normMag);
+                    this.tryNavigateMenuWithStick(Math.cos(angle) * normMag, Math.sin(angle) * normMag);
                 }
             },
 
@@ -2681,24 +2675,36 @@
             tryNavigateMenuWithStick(vx, vy) {
                 if (GameState.screen !== 'battle' || (GameState.mode !== 'menu' && GameState.mode !== 'submenu')) return;
                 const now = performance.now();
-                if (now - this.lastMenuNavTs < 240) return;
+                if (now - this.lastMenuNavTs < 220) return;
 
-                if (Math.abs(vx) > 0.65 || Math.abs(vy) > 0.65) {
+                if (Math.abs(vx) > 0.55 || Math.abs(vy) > 0.55) {
                     this.lastMenuNavTs = now;
                     if (GameState.mode === 'menu') {
-                        if (vx > 0.65) highlightMainAction(GameState.selectedMain + 1);
-                        else if (vx < -0.65) highlightMainAction(GameState.selectedMain - 1);
+                        if (vx > 0.55) highlightMainAction(GameState.selectedMain + 1);
+                        else if (vx < -0.55) highlightMainAction(GameState.selectedMain - 1);
                     } else if (GameState.mode === 'submenu') {
-                        stepSubmenu(vx > 0.65 || vy > 0.65 ? 1 : -1);
+                        stepSubmenu(vx > 0.55 || vy > 0.55 ? 1 : -1);
                     }
                 }
             },
 
-            updateArrows(vx, vy) {
-                document.getElementById('joyArrUp').classList.toggle('lit', vy < -0.35);
-                document.getElementById('joyArrDown').classList.toggle('lit', vy > 0.35);
-                document.getElementById('joyArrLeft').classList.toggle('lit', vx < -0.35);
-                document.getElementById('joyArrRight').classList.toggle('lit', vx > 0.35);
+            // Hiển thị vệt sáng hướng đẩy trên vòng đế & làm sáng mũi tên khi gạt mạnh
+            updateGlowAndArrows(vx, vy, angle, normMag) {
+                document.getElementById('joyArrUp').classList.toggle('lit', vy < -0.3);
+                document.getElementById('joyArrDown').classList.toggle('lit', vy > 0.3);
+                document.getElementById('joyArrLeft').classList.toggle('lit', vx < -0.3);
+                document.getElementById('joyArrRight').classList.toggle('lit', vx > 0.3);
+
+                if (this.glowArc) {
+                    if (normMag > 0.22) {
+                        const deg = (angle * 180 / Math.PI) + 90;
+                        const glowOpacity = Math.min(1, (normMag - 0.18) * 1.25);
+                        this.glowArc.style.opacity = glowOpacity.toFixed(2);
+                        this.glowArc.style.transform = `rotate(${deg.toFixed(1)}deg)`;
+                    } else {
+                        this.glowArc.style.opacity = '0';
+                    }
+                }
             },
 
             reset() {
@@ -2706,13 +2712,85 @@
                 this.mouseDragging = false;
                 BulletEngine.joyX = 0;
                 BulletEngine.joyY = 0;
+                if (this.hitZone) this.hitZone.classList.remove('dragging');
                 if (this.knob) {
                     this.knob.classList.add('spring-back');
                     this.knob.style.transform = 'translate3d(0px, 0px, 0)';
                 }
-                this.updateArrows(0, 0);
+                this.updateGlowAndArrows(0, 0, 0, 0);
             }
         };
+
+        /* =====================================================================
+         * 9B. HỖ TRỢ KÉO TRỰC TIẾP TRONG KHUNG ĐẤU (#battleCanvas) — ĐA CHẠM
+         * ===================================================================== */
+        function setupCanvasDirectDrag() {
+            const canvas = document.getElementById('battleCanvas');
+            if (!canvas) return;
+
+            let canvasTouchId = null;
+            let lastX = 0;
+            let lastY = 0;
+            let mouseDown = false;
+
+            canvas.addEventListener('touchstart', (e) => {
+                if (GameState.mode !== 'dodge') return;
+                e.preventDefault();
+                SoundEngine.init();
+                if (canvasTouchId === null && e.changedTouches.length > 0) {
+                    const t = e.changedTouches[0];
+                    canvasTouchId = t.identifier;
+                    lastX = t.clientX;
+                    lastY = t.clientY;
+                }
+            }, { passive: false });
+
+            canvas.addEventListener('touchmove', (e) => {
+                if (canvasTouchId === null || GameState.mode !== 'dodge') return;
+                for (let i = 0; i < e.touches.length; i++) {
+                    const t = e.touches[i];
+                    if (t.identifier === canvasTouchId) {
+                        e.preventDefault();
+                        BulletEngine.dragDeltaX += (t.clientX - lastX) * 1.15;
+                        BulletEngine.dragDeltaY += (t.clientY - lastY) * 1.15;
+                        lastX = t.clientX;
+                        lastY = t.clientY;
+                        break;
+                    }
+                }
+            }, { passive: false });
+
+            const releaseCanvasTouch = (e) => {
+                if (canvasTouchId === null) return;
+                for (let i = 0; i < e.changedTouches.length; i++) {
+                    if (e.changedTouches[i].identifier === canvasTouchId) {
+                        canvasTouchId = null;
+                        break;
+                    }
+                }
+            };
+            window.addEventListener('touchend', releaseCanvasTouch, { passive: false });
+            window.addEventListener('touchcancel', releaseCanvasTouch, { passive: false });
+
+            canvas.addEventListener('mousedown', (e) => {
+                if (GameState.mode !== 'dodge') return;
+                e.preventDefault();
+                SoundEngine.init();
+                mouseDown = true;
+                lastX = e.clientX;
+                lastY = e.clientY;
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (!mouseDown || GameState.mode !== 'dodge') return;
+                BulletEngine.dragDeltaX += (e.clientX - lastX) * 1.1;
+                BulletEngine.dragDeltaY += (e.clientY - lastY) * 1.1;
+                lastX = e.clientX;
+                lastY = e.clientY;
+            });
+
+            window.addEventListener('mouseup', () => { mouseDown = false; });
+        }
 
         /* =====================================================================
          * 10. NÚT PHỤ TRỢ NGÓN CÁI PHẢI (NÉ CHẬM & CHỌN/ĐÁNH Z) + D-PAD + PC
@@ -2897,7 +2975,9 @@
 
         // Khởi tạo cụm tay cầm khi tải xong trang
         window.onload = function () {
+            updateSensitivityUI();
             JoystickController.init();
+            setupCanvasDirectDrag();
             setupMobileButtonsAndDpad();
         };
     </script>
