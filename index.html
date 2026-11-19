@@ -876,6 +876,10 @@
                     </div>
                 </div>
                 <div id="attackHintTag" class="hidden absolute bottom-1 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded bg-black/85 border border-cyan-400 text-cyan-300 text-[10px] font-bold whitespace-nowrap pointer-events-none z-10">
+                </div>
+            </div>
+        </section>
+
         <!-- 3. THANH TRẠNG THÁI NGƯỜI CHƠI (SV 204 | LV 1 | HP 20/20 | ÂM THANH | ĐỘ NHẠY | ĐỔI TAY CẦM) -->
         <section class="shrink-0 bg-black/90 border-2 border-white/35 rounded-lg px-2 py-1.5 flex items-center justify-between gap-1 text-[11px] sm:text-xs font-bold">
             <div class="flex items-center gap-1 shrink-0">
@@ -1205,6 +1209,33 @@
                 showToast('🔇 Đã tắt âm thanh');
             }
         }
+
+        /* =====================================================================
+         * 2. THÔNG BÁO TOAST, DANH SÁCH VẬT PHẨM, HÀNH ĐỘNG & TRẠNG THÁI GAME
+         * ===================================================================== */
+        let toastTimer = null;
+        function showToast(msg) {
+            const box = document.getElementById('toastBox');
+            if (!box) return;
+            box.textContent = msg;
+            box.classList.remove('hidden');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => box.classList.add('hidden'), 2200);
+        }
+
+        const INITIAL_ITEMS = [
+            { id: 'milktea', name: 'Trà sữa 204', heal: 10, desc: 'Trà sữa trân châu đường đen trên bàn họp. Hồi +10 HP!' },
+            { id: 'cookie', name: 'Bánh quy Noel', heal: 8, desc: 'Bánh quy gừng thơm lừng mùi Giáng Sinh. Hồi +8 HP!' },
+            { id: 'candy', name: 'Kẹo gậy bạc hà', heal: 6, desc: 'Kẹo gậy Secret Santa ngọt mát. Hồi +6 HP!' },
+            { id: 'water', name: 'Nước suối mát', heal: 5, desc: 'Nước suối tiếp sức chạy deadline Phòng 204. Hồi +5 HP!' }
+        ];
+
+        const ACT_OPTIONS = [
+            { id: 'check', name: 'Kiểm tra', tag: 'Xem chỉ số', desc: 'Quan sát Boss Cún Bông Phòng 204 để nắm điểm yếu.' },
+            { id: 'pet', name: 'Xoa đầu', tag: '+25% MERCY', desc: 'Xoa nhẹ sau tai giúp Cún Bông dịu đòn đánh lượt sau.' },
+            { id: 'treat', name: 'Cho bánh thưởng', tag: '+35% MERCY', desc: 'Tung bánh thưởng gà phô mai yêu thích của Cún Bông!' },
+            { id: 'guitar', name: 'Gảy đàn Yamaha', tag: '+30% MERCY', desc: 'Đánh một khúc Noel bằng cây đàn góc Phòng 204.' }
+        ];
 
         const SENSITIVITY_LEVELS = [
             {
@@ -1845,6 +1876,8 @@
                 baseSpeed: 215,
                 invuln: 0,
                 moved: false
+            },
+
             // Tổng hợp đầu vào: Phím PC + D-Pad ảo + Cần gạt Analog 360° + Kéo trực tiếp + Chế độ Né Chậm (HOLD/Shift)
             kbKeys: { up: false, down: false, left: false, right: false },
             dpadKeys: { up: false, down: false, left: false, right: false },
@@ -2541,6 +2574,114 @@
             ctx.strokeStyle = stroke;
             ctx.stroke();
             ctx.restore();
+        }
+
+        /* =====================================================================
+         * 8. MÀN HÌNH KẾT THÚC (HÒA BÌNH / CHIẾN ĐẤU / GAME OVER) & ĐIỂM 50-100
+         * ===================================================================== */
+        function finishGame(outcome) {
+            stopBulletHell();
+            cancelFightBar();
+            JoystickController.reset();
+            setSlowFocus(false);
+            document.body.classList.remove('phase2-active');
+
+            GameState.screen = 'end';
+            document.getElementById('battleScreen').classList.add('hidden');
+            document.getElementById('endScreen').classList.remove('hidden');
+
+            const visualEl = document.getElementById('endVisual');
+            const badgeEl = document.getElementById('endBadge');
+            const titleEl = document.getElementById('endTitle');
+            const storyEl = document.getElementById('endStory');
+            const rewardCard = document.getElementById('rewardCard');
+            const pointsEl = document.getElementById('rewardTotalPoints');
+            const breakdownEl = document.getElementById('rewardBreakdown');
+            const restartBtn = document.getElementById('restartBtn');
+
+            if (outcome === 'gameover') {
+                SoundEngine.stopBgm();
+                SoundEngine.playHeartBreak();
+
+                visualEl.innerHTML = `
+                    <div class="relative w-28 h-28 flex items-center justify-center">
+                        <svg viewBox="0 0 100 100" class="w-24 h-24 overflow-visible">
+                            <path class="heart-half-left" d="M50 86 C20 64 12 42 18 26 C24 12 42 14 50 28 L46 46 L52 60 Z" fill="#ff2222" stroke="#ffffff" stroke-width="3"/>
+                            <path class="heart-half-right" d="M50 86 C80 64 88 42 82 26 C76 12 58 14 50 28 L54 46 L48 60 Z" fill="#ff2222" stroke="#ffffff" stroke-width="3"/>
+                        </svg>
+                    </div>
+                `;
+                badgeEl.textContent = '💔 GAME OVER';
+                badgeEl.className = 'inline-block px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider mb-1.5 bg-red-900/90 border border-red-400 text-red-200';
+                titleEl.textContent = 'TRÁI TIM ĐÃ VỠ...';
+                storyEl.textContent = 'Boss Cún Bông quá mạnh! Đừng bỏ cuộc — hãy giữ vững Quyết Tâm (DETERMINATION) của Phòng 204 và thử lại nhé!';
+                rewardCard.classList.add('hidden');
+                restartBtn.textContent = '🔥 THỬ LẠI NGAY';
+                return;
+            }
+
+            const isPacifist = (outcome === 'pacifist');
+            SoundEngine.playVictoryFanfare(isPacifist);
+
+            // Tính điểm thưởng Secret Santa trong khoảng 50 - 100 điểm
+            const basePts = isPacifist ? 65 : 55;
+            const hpBonus = Math.round((GameState.playerHp / GameState.playerMaxHp) * 20);
+            const randomBonus = Math.floor(Math.random() * 16);
+            const totalPoints = Math.min(100, Math.max(50, basePts + hpBonus + randomBonus));
+            const routeText = isPacifist ? 'Kết Thúc Hòa Bình (Pacifist)' : 'Kết Thúc Chiến Đấu (Combat)';
+
+            GameState.lastRewardSummary = `[Secret Santa 2026 - Phòng 204] Hoàn thành Minigame UNDERTALE 204: Boss Cún Bông | ${routeText} | HP còn lại: ${GameState.playerHp}/${GameState.playerMaxHp} | Lượt: ${GameState.turn} | Điểm thưởng: +${totalPoints} điểm`;
+
+            if (isPacifist) {
+                visualEl.innerHTML = `
+                    <img src="image_b40ceb.png" alt="Cún Bông Hạnh Phúc"
+                         class="w-full h-full object-contain boss-idle drop-shadow-[0_0_20px_rgba(255,230,0,0.75)]"
+                         onerror="this.style.display='none'; this.nextElementSibling.classList.remove('hidden');">
+                    <div class="hidden text-7xl boss-idle">🐶💛</div>
+                `;
+                badgeEl.textContent = '🌟 TRUE PACIFIST ENDING';
+                badgeEl.className = 'inline-block px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider mb-1.5 bg-yellow-500/25 border border-yellow-300 text-yellow-200';
+                titleEl.textContent = 'BẠN THÂN PHÒNG 204!';
+                storyEl.textContent = 'Bạn đã cảm hóa hoàn toàn Boss Cún Bông bằng sự ấm áp! Cún Bông vui vẻ mở cửa Phòng 204 và tặng bạn một hộp quà Secret Santa lấp lánh.';
+            } else {
+                visualEl.innerHTML = `
+                    <img src="image_b40c2b.png" alt="Boss Cún Bông Thua Cuộc"
+                         class="w-full h-full object-contain opacity-90 drop-shadow-[0_0_18px_rgba(255,80,40,0.65)]"
+                         onerror="this.style.display='none'; this.nextElementSibling.classList.remove('hidden');">
+                    <div class="hidden text-7xl">🏆🐾</div>
+                `;
+                badgeEl.textContent = '⚔️ VICTORY ENDING';
+                badgeEl.className = 'inline-block px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider mb-1.5 bg-orange-900/80 border border-orange-400 text-orange-200';
+                titleEl.textContent = 'CHINH PHỤC BOSS 204!';
+                storyEl.textContent = 'Sau trận mưa đạn nảy lửa, Boss Cún Bông đã chịu thua và ngoan ngoãn nằm xuống thảm vàng Phòng 204. Thử lại tuyến Hòa Bình bằng nút ACT/MERCY nhé!';
+            }
+
+            pointsEl.textContent = `+${totalPoints}`;
+            breakdownEl.innerHTML = `
+                <div>• Tuyến kết thúc: <strong class="text-yellow-300">${routeText}</strong></div>
+                <div>• Máu còn lại: <strong class="text-green-400">${GameState.playerHp}/${GameState.playerMaxHp} HP</strong> • Số lượt: <strong>${GameState.turn}</strong></div>
+                <div>• Điểm cơ bản (${basePts}) + Thưởng HP (${hpBonus}) + May mắn Noel (${randomBonus}) = <strong class="text-yellow-300">${totalPoints} điểm</strong></div>
+            `;
+            rewardCard.classList.remove('hidden');
+            restartBtn.textContent = '🔄 CHƠI LẠI';
+        }
+
+        function copyRewardSummary() {
+            if (!GameState.lastRewardSummary) return;
+            try {
+                const ta = document.createElement('textarea');
+                ta.value = GameState.lastRewardSummary;
+                ta.style.position = 'fixed';
+                ta.style.opacity = '0';
+                document.body.appendChild(ta);
+                ta.focus();
+                ta.select();
+                const ok = document.execCommand('copy');
+                document.body.removeChild(ta);
+                showToast(ok ? '✅ Đã sao chép kết quả gửi BTC!' : '⚠️ Không thể sao chép tự động');
+            } catch (err) {
+                showToast('⚠️ Lỗi khi sao chép kết quả');
+            }
         }
 
         /* =====================================================================
